@@ -1,0 +1,61 @@
+2026-03-29 22:10:50 | INFO     | __main__:main:13 - 开始处理输入源: test_products.csv
+2026-03-29 22:10:50 | INFO     | __main__:main:14 - 输出格式: excel
+2026-03-29 22:10:50 | INFO     | src.workflow:run:12 - 开始运行价格对比工作流
+2026-03-29 22:10:50 | INFO     | src.workflow:run:15 - 加载商品数据
+2026-03-29 22:10:50 | INFO     | src.data_processing.data_loader:load_from_file:23 - 成功加载文件: test_products.csv, 共 3 条商品数据
+2026-03-29 22:10:50 | INFO     | src.workflow:run:28 - 收集各平台价格
+2026-03-29 22:10:50 | INFO     | src.workflow:run:32 - 处理商品 1: iPhone 15 Pro
+2026-03-29 22:10:50 | INFO     | src.price_collection.price_collector:collect_prices:21 - 为商品 'iPhone 15 Pro' 构建搜索关键词: iPhone 15 Pro 256GB 钛金属色
+2026-03-29 22:10:50 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 慢慢买 上搜索商品
+2026-03-29 22:10:55 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 慢慢买 上未找到商品
+2026-03-29 22:10:55 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 拼多多 上搜索商品
+2026-03-29 22:10:57 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 拼多多 上未找到商品
+2026-03-29 22:10:57 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 返利网 上搜索商品
+2026-03-29 22:10:57 | ERROR    | src.utils.http_utils:get:38 - 请求失败: https://www.fanli.com/search/?keyword=iPhone%2015%20Pro%20256GB%20%E9%92%9B%E9%87%91%E5%B1%9E%E8%89%B2, 错误: 404 Client Error: Not Found for url: https://www.fanli.com/search/?keyword=iPhone%2015%20Pro%20256GB%20%E9%92%9B%E9%87%91%E5%B1%9E%E8%89%B2
+2026-03-29 22:10:57 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 返利网 上未找到商品
+2026-03-29 22:10:57 | INFO     | src.workflow:run:32 - 处理商品 2: AirPods Pro 2
+2026-03-29 22:10:57 | INFO     | src.price_collection.price_collector:collect_prices:21 - 为商品 'AirPods Pro 2' 构建搜索关键词: AirPods Pro 2 降噪耳机
+2026-03-29 22:10:57 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 慢慢买 上搜索商品
+2026-03-29 22:11:01 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 慢慢买 上未找到商品
+2026-03-29 22:11:01 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 拼多多 上搜索商品
+2026-03-29 22:11:03 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 拼多多 上未找到商品
+2026-03-29 22:11:03 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 返利网 上搜索商品
+2026-03-29 22:11:03 | ERROR    | src.utils.http_utils:get:38 - 请求失败: https://www.fanli.com/search/?keyword=AirPods%20Pro%202%20%E9%99%8D%E5%99%AA%E8%80%B3%E6%9C%BA, 错误: 404 Client Error: Not Found for url: https://www.fanli.com/search/?keyword=AirPods%20Pro%202%20%E9%99%8D%E5%99%AA%E8%80%B3%E6%9C%BA
+2026-03-29 22:11:03 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 返利网 上未找到商品
+2026-03-29 22:11:03 | INFO     | src.workflow:run:32 - 处理商品 3: MacBook Air M2
+2026-03-29 22:11:03 | INFO     | src.price_collection.price_collector:collect_prices:21 - 为商品 'MacBook Air M2' 构建搜索关键词: MacBook Air M2 13英寸 8GB+256GB
+2026-03-29 22:11:03 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 慢慢买 上搜索商品
+2026-03-29 22:11:03 | ERROR    | src.utils.http_utils:get:38 - 请求失败: https://www.manmanbuy.com/searchnew.aspx?key=MacBook%20Air%20M2%2013%E8%8B%B1%E5%AF%B8%208GB%2B256GB, 错误: 404 Client Error: Not Found for url: https://www.manmanbuy.com/searchnew.aspx?key=MacBook%20Air%20M2%2013%E8%8B%B1%E5%AF%B8%208GB%2B256GB
+2026-03-29 22:11:03 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 慢慢买 上未找到商品
+2026-03-29 22:11:03 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 拼多多 上搜索商品
+2026-03-29 22:11:06 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 拼多多 上未找到商品
+2026-03-29 22:11:06 | INFO     | src.price_collection.price_collector:collect_prices:26 - 开始在 返利网 上搜索商品
+2026-03-29 22:11:06 | ERROR    | src.utils.http_utils:get:38 - 请求失败: https://www.fanli.com/search/?keyword=MacBook%20Air%20M2%2013%E8%8B%B1%E5%AF%B8%208GB%2B256GB, 错误: 404 Client Error: Not Found for url: https://www.fanli.com/search/?keyword=MacBook%20Air%20M2%2013%E8%8B%B1%E5%AF%B8%208GB%2B256GB
+2026-03-29 22:11:06 | WARNING  | src.price_collection.price_collector:collect_prices:33 - 在 返利网 上未找到商品
+2026-03-29 22:11:06 | INFO     | src.workflow:run:43 - 分析价格数据
+2026-03-29 22:11:06 | INFO     | src.comparison.data_analyzer:analyze:60 - 成功生成对比表格，共 3 条记录
+2026-03-29 22:11:06 | INFO     | src.workflow:run:47 - 导出结果到 excel 格式
+2026-03-29 22:11:06 | INFO     | src.comparison.data_analyzer:export_to_excel:89 - 成功导出Excel文件: output/price_comparison_20260329_221106.xlsx
+2026-03-29 22:11:06 | INFO     | src.workflow:run:56 - 价格对比工作流运行完成
+2026-03-29 22:11:06 | INFO     | __main__:main:20 - 工作流运行成功，结果已导出到: output/price_comparison_20260329_221106.xlsx
+2026-03-29 22:47:49 | INFO     | __main__:main:13 - 开始处理输入源: https://zz.qcqcq.com/index
+2026-03-29 22:47:49 | INFO     | __main__:main:14 - 输出格式: excel
+2026-03-29 22:47:49 | INFO     | src.workflow:run:12 - 开始运行价格对比工作流
+2026-03-29 22:47:49 | INFO     | src.workflow:run:15 - 加载商品数据
+2026-03-29 22:47:49 | ERROR    | src.utils.http_utils:get:38 - 请求失败: https://zz.qcqcq.com/index, 错误: HTTPSConnectionPool(host='zz.qcqcq.com', port=443): Max retries exceeded with url: /index (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')))
+2026-03-29 22:47:49 | ERROR    | src.workflow:run:24 - 未加载到商品数据
+2026-03-29 22:47:49 | ERROR    | __main__:main:24 - 工作流运行失败
+2026-03-29 22:50:59 | INFO     | __main__:main:13 - 开始处理输入源: https://zz.qcqcq.com/index
+2026-03-29 22:50:59 | INFO     | __main__:main:14 - 输出格式: excel
+2026-03-29 22:50:59 | INFO     | src.workflow:run:12 - 开始运行价格对比工作流
+2026-03-29 22:50:59 | INFO     | src.workflow:run:15 - 加载商品数据
+2026-03-29 22:51:02 | INFO     | src.data_processing.data_loader:load_from_url:72 - 成功从URL抓取数据: https://zz.qcqcq.com/index, 共 0 条商品数据
+2026-03-29 22:51:02 | ERROR    | src.workflow:run:24 - 未加载到商品数据
+2026-03-29 22:51:02 | ERROR    | __main__:main:24 - 工作流运行失败
+2026-03-29 22:52:37 | INFO     | __main__:main:13 - 开始处理输入源: https://zz.qcqcq.com/index
+2026-03-29 22:52:37 | INFO     | __main__:main:14 - 输出格式: excel
+2026-03-29 22:52:37 | INFO     | src.workflow:run:12 - 开始运行价格对比工作流
+2026-03-29 22:52:37 | INFO     | src.workflow:run:15 - 加载商品数据
+2026-03-29 22:52:39 | INFO     | src.data_processing.data_loader:load_from_url:72 - 成功从URL抓取数据: https://zz.qcqcq.com/index, 共 0 条商品数据
+2026-03-29 22:52:39 | ERROR    | src.workflow:run:24 - 未加载到商品数据
+2026-03-29 22:52:39 | ERROR    | __main__:main:24 - 工作流运行失败
