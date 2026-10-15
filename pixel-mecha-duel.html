@@ -32,7 +32,7 @@
 <div id="tips">
   <b>P1</b> <b>A/D</b> 移动 · <b>W</b> 跳跃 · <b>S</b> 防御 · <b>F</b> 近战 · <b>G</b> 炮击 · <b>Shift</b> 冲刺<br />
   <b>P2</b> <b>←/→</b> 移动 · <b>↑</b> 跳跃 · <b>↓</b> 防御 · <b>K</b> 近战 · <b>L</b> 炮击 · <b>/</b> 冲刺<br />
-  <i>1 单人打 AI · 2 双人同屏 · T 切换 AI 难度 · M 静音 · Enter 重开</i>
+  <i>标题界面：↑↓ 选择 · ←→ 切换取值 · Enter 开始（也可用 1 / 2 快速开局）· 对局中 Esc 暂停 · M 静音 · T 难度</i>
 </div>
 
 <script>
@@ -263,6 +263,38 @@ const noInput = () => ({
   left: false, right: false, up: false, down: false,
   upFresh: false, downFresh: false, meleeFresh: false, cannonFresh: false, dashFresh: false,
 });
+
+/* --- 菜单导航按键：标题设置界面与暂停菜单共用 --- */
+const NAV_UP = ['ArrowUp', 'KeyW'];
+const NAV_DOWN = ['ArrowDown', 'KeyS'];
+const NAV_LEFT = ['ArrowLeft', 'KeyA'];
+const NAV_RIGHT = ['ArrowRight', 'KeyD'];
+
+let navVert = 0, navVertT = 0;
+
+// 纵向导航：刚按下立即响应，按住约 18 帧后开始每 5 帧重复（支持长按翻行）
+function navVertical(jd) {
+  const freshUp = NAV_UP.some(k => jd.has(k));
+  const freshDn = NAV_DOWN.some(k => jd.has(k));
+  if (freshUp || freshDn) { navVert = freshUp ? -1 : 1; navVertT = 0; return navVert; }
+
+  const heldUp = NAV_UP.some(k => keys[k]);
+  const heldDn = NAV_DOWN.some(k => keys[k]);
+  if (!heldUp && !heldDn) { navVert = 0; navVertT = 0; return 0; }
+
+  const d = heldUp ? -1 : 1;
+  if (d !== navVert) { navVert = d; navVertT = 0; return d; }
+  navVertT++;
+  if (navVertT === 18 || (navVertT > 18 && navVertT % 5 === 0)) return d;
+  return 0;
+}
+
+// 横向导航：只响应刚按下（选项为离散值，无需长按重复）
+function navHoriz(jd) {
+  if (NAV_LEFT.some(k => jd.has(k))) return -1;
+  if (NAV_RIGHT.some(k => jd.has(k))) return 1;
+  return 0;
+}
 
 /* =====================================================================
    6. 战斗机实体：状态机 + 物理 + 攻击判定
@@ -597,6 +629,8 @@ const G = {
   timer: CFG.roundTime * 60,
   banner: '',
   koLoser: null,
+  paused: false,      // 对局中 Esc 暂停
+  menuCursor: 0,      // 设置界面当前光标行
 };
 
 let hitstop = 0, shake = 0;
@@ -662,14 +696,79 @@ function separate(a, b) {
 }
 
 /* =====================================================================
+   8.5 设置界面：标题设置面板 + 对局内暂停菜单
+   ===================================================================== */
+const OPT_MODE  = ['SOLO VS CPU', '2P LOCAL'];
+const OPT_LEVEL = ['EASY', 'NORMAL'];
+const OPT_SOUND = ['OFF', 'ON'];
+
+const TITLE_ROWS = 3;   // MODE / CPU LEVEL / SOUND
+const PAUSE_ROWS = 4;   // RESUME / CPU LEVEL / SOUND / QUIT TO TITLE
+
+const modeIdx  = () => G.aiMode ? 0 : 1;
+const soundIdx = () => muted ? 0 : 1;
+
+// CPU LEVEL 仅在单人打 AI 时生效，2P 模式下该行置灰跳过
+const titleRowDisabled = r => r === 1 && !G.aiMode;
+const pauseRowDisabled = r => r === 1 && !G.aiMode;
+
+// 光标移动时跳过禁用行，避免停在"按了没反应"的死行上
+function stepRow(cur, dir, n, isDisabled) {
+  let v = cur;
+  for (let i = 0; i < n; i++) {
+    v = (v + dir + n) % n;
+    if (!isDisabled(v)) return v;
+  }
+  return cur;
+}
+
+// 三行设置都是二选一，左右任意方向都直接切换，避免在端点出现"按了没反应"
+// 先应用改动再发声：把音效打开的那一刻能听到确认音，关掉时自然静音
+function cycleMode()  { G.aiMode = !G.aiMode; sfx('ui'); }
+function cycleLevel() { G.aiLevel = 1 - G.aiLevel; P2.aiLevel = G.aiLevel; sfx('ui'); }
+function cycleSound() { muted = !muted; sfx('ui'); }
+
+function adjustTitleRow(row) {
+  if (row === 0) cycleMode();
+  else if (row === 1) cycleLevel();
+  else if (row === 2) cycleSound();
+}
+
+function adjustPauseRow(row) {
+  if (row === 1) { if (G.aiMode) cycleLevel(); }
+  else if (row === 2) cycleSound();
+}
+
+function activatePauseRow(row) {
+  if (row === 0) { G.paused = false; sfx('ui'); }
+  else if (row === 1) { if (G.aiMode) cycleLevel(); }
+  else if (row === 2) cycleSound();
+  else if (row === 3) { G.paused = false; G.phase = 'title'; G.phaseT = 0; G.menuCursor = 0; sfx('ui'); }
+}
+
+function pauseMenuInput(jd) {
+  const d = navVertical(jd);
+  if (d) {
+    const n = stepRow(G.menuCursor, d, PAUSE_ROWS, pauseRowDisabled);
+    if (n !== G.menuCursor) { G.menuCursor = n; sfx('ui'); }
+  }
+  if (navHoriz(jd)) adjustPauseRow(G.menuCursor);
+  if (jd.has('Enter') || jd.has('Space')) activatePauseRow(G.menuCursor);
+  else if (jd.has('Escape')) { G.paused = false; sfx('ui'); }
+}
+
+/* =====================================================================
    9. 每帧逻辑推进（固定步长）
    ===================================================================== */
 function step() {
   const jd = justDown;
   justDown = new Set();
 
-  if (jd.has('KeyM')) { muted = !muted; }
-  if (jd.has('KeyT')) { G.aiLevel = 1 - G.aiLevel; P2.aiLevel = G.aiLevel; sfx('ui'); }
+  if (jd.has('KeyM')) cycleSound();
+  if (jd.has('KeyT')) cycleLevel();
+
+  // 暂停：冻结战斗与计时，只处理菜单输入
+  if (G.paused) { pauseMenuInput(jd); updateParticles(); shake *= 0.9; return; }
 
   // 顿帧：冻结角色与弹丸，只推进特效
   if (hitstop > 0) { hitstop--; updateParticles(); shake *= 0.9; return; }
@@ -677,17 +776,25 @@ function step() {
   G.phaseT++;
 
   switch (G.phase) {
-    case 'title':
-      if (jd.has('Digit1')) startMatch(true);
-      else if (jd.has('Digit2')) startMatch(false);
-      else if (jd.has('Enter') || jd.has('Space')) startMatch(true);
+    case 'title': {
+      const d = navVertical(jd);
+      if (d) {
+        const n = stepRow(G.menuCursor, d, TITLE_ROWS, titleRowDisabled);
+        if (n !== G.menuCursor) { G.menuCursor = n; sfx('ui'); }
+      }
+      if (navHoriz(jd)) adjustTitleRow(G.menuCursor);
+      if (jd.has('Digit1')) { G.aiMode = true; startMatch(true); }
+      else if (jd.has('Digit2')) { G.aiMode = false; startMatch(false); }
+      else if (jd.has('Enter') || jd.has('Space')) startMatch(G.aiMode);
       break;
+    }
 
     case 'countdown':
       if (G.phaseT >= 200) { G.phase = 'fight'; G.phaseT = 0; sfx('fight'); }
       break;
 
     case 'fight': {
+      if (jd.has('Escape')) { G.paused = true; G.menuCursor = 0; sfx('ui'); break; }
       const i1 = readInput(CTRL.p1, jd);
       const i2 = P2.isAI ? aiInput(P2, P1) : readInput(CTRL.p2, jd);
       P1.update(i1, P2);
@@ -719,7 +826,7 @@ function step() {
 
     case 'matchover':
       if (jd.has('Enter') || jd.has('Space')) startMatch(G.aiMode);
-      else if (jd.has('Escape') || jd.has('KeyQ')) { G.phase = 'title'; G.phaseT = 0; sfx('ui'); }
+      else if (jd.has('Escape') || jd.has('KeyQ')) { G.phase = 'title'; G.phaseT = 0; G.menuCursor = 0; sfx('ui'); }
       break;
   }
 
@@ -1043,26 +1150,58 @@ function drawBanner() {
 const TITLE_A = { x: 108, y: GROUND_Y, facing: 1, state: 'idle', stateT: 0, animT: 0, flash: 0, invuln: 0, pal: PAL.red };
 const TITLE_B = { x: 212, y: GROUND_Y, facing: -1, state: 'idle', stateT: 0, animT: 0, flash: 0, invuln: 0, pal: PAL.blue };
 
+/* --- 设置菜单行：光标 + 标签 + 可左右切换的取值 --- */
+function drawMenuRow(x, y, label, value, selected, disabled, vright) {
+  if (selected) drawText(ctx, '>', x - 12, y, '#ffe066');
+  drawText(ctx, label, x, y, disabled ? '#6a6288' : (selected ? '#ffe066' : '#8b81b8'));
+  if (value != null) {
+    const s = '< ' + value + ' >';
+    const col = disabled ? '#6a6288' : (selected ? '#ffffff' : '#9f95c9');
+    drawText(ctx, s, (vright == null ? 278 : vright) - textW(s, 1), y, col);
+  }
+}
+
 function drawTitle() {
   ctx.fillStyle = 'rgba(8,5,18,0.5)';
   ctx.fillRect(0, 0, W, H);
 
-  drawTextC(ctx, 'PIXEL MECHA DUEL', W / 2, 22, '#ffe066', 3, '#7a1f4a');
-  drawTextC(ctx, '1 VS 1 ARCADE BATTLE', W / 2, 46, '#b9a9ff', 1, '#1a1230');
+  drawTextC(ctx, 'PIXEL MECHA DUEL', W / 2, 18, '#ffe066', 3, '#7a1f4a');
+  drawTextC(ctx, '1 VS 1 ARCADE BATTLE', W / 2, 42, '#b9a9ff', 1, '#1a1230');
 
-  drawPanel(52, 58, 216, 46);
-  drawTextC(ctx, 'PRESS 1    SOLO VS CPU', W / 2, 64, '#ff9a86', 1);
-  drawTextC(ctx, 'PRESS 2    2P LOCAL', W / 2, 76, '#8fc4ff', 1);
-  drawTextC(ctx, 'CPU LEVEL ' + (G.aiLevel ? 'NORMAL' : 'EASY') + '  (T TO SWITCH)', W / 2, 90, '#8b81b8', 1);
+  drawPanel(30, 52, 260, 46);
+  const ry = [58, 72, 86];
+  drawMenuRow(48, ry[0], 'MODE', OPT_MODE[modeIdx()], G.menuCursor === 0, false);
+  drawMenuRow(48, ry[1], 'CPU LEVEL', G.aiMode ? OPT_LEVEL[G.aiLevel] : '--', G.menuCursor === 1, !G.aiMode);
+  drawMenuRow(48, ry[2], 'SOUND', OPT_SOUND[soundIdx()], G.menuCursor === 2, false);
+
+  drawTextC(ctx, 'ENTER START   UP/DOWN SELECT   LEFT/RIGHT CHANGE', W / 2, 104, '#6b6390');
 
   TITLE_A.animT++; TITLE_B.animT++;
   drawShadow(TITLE_A); drawShadow(TITLE_B);
   drawMecha(TITLE_A, 0);
   drawMecha(TITLE_B, 0);
 
-  drawText(ctx, 'P1  A/D MOVE  W JUMP  S GUARD  F MELEE  G CANNON  SHIFT DASH', 6, 160, '#7d75a8');
-  drawText(ctx, 'P2  ARROWS MOVE  K MELEE  L CANNON  / DASH', 6, 170, '#7d75a8');
-  drawText(ctx, muted ? 'M SOUND OFF' : 'M SOUND ON', W - 8 - textW(muted ? 'M SOUND OFF' : 'M SOUND ON'), 160, muted ? '#6b6390' : '#63e8ff');
+  drawText(ctx, 'P1  A/D MOVE  W JUMP  S GUARD  F MELEE  G CANNON  SHIFT DASH', 6, 158, '#7d75a8');
+  drawText(ctx, 'P2  ARROWS MOVE  K MELEE  L CANNON  / DASH', 6, 168, '#7d75a8');
+  const ph = 'ESC PAUSE IN MATCH';
+  drawText(ctx, ph, W - 8 - textW(ph), 168, '#6b6390');
+}
+
+/* --- 对局内暂停菜单 --- */
+function drawPause() {
+  ctx.fillStyle = 'rgba(8,5,18,0.78)';
+  ctx.fillRect(0, 0, W, H);
+
+  drawTextC(ctx, 'PAUSED', W / 2, 32, '#ffe066', 2, '#7a1f4a');
+  drawPanel(40, 44, 240, 90);
+
+  const ry = [58, 74, 90, 106];
+  drawMenuRow(60, ry[0], 'RESUME', null, G.menuCursor === 0, false, 268);
+  drawMenuRow(60, ry[1], 'CPU LEVEL', G.aiMode ? OPT_LEVEL[G.aiLevel] : '--', G.menuCursor === 1, !G.aiMode, 268);
+  drawMenuRow(60, ry[2], 'SOUND', OPT_SOUND[soundIdx()], G.menuCursor === 2, false, 268);
+  drawMenuRow(60, ry[3], 'QUIT TO TITLE', null, G.menuCursor === 3, false, 268);
+
+  drawTextC(ctx, 'ESC RESUME', W / 2, 122, '#6b6390');
 }
 
 /* =====================================================================
@@ -1076,16 +1215,19 @@ function render() {
   ctx.translate(sx, sy);
   drawStage();
   drawPlatforms();
-  for (const f of fighters) drawShadow(f);
-  // 按 x 排序，让交叠时的前后关系更自然
-  const order = fighters.slice().sort((a, b) => a.x - b.x);
-  for (const f of order) drawFighter(f);
-  drawShots();
-  drawParticles();
+  // 标题界面只有装饰机甲，不画对局中的角色，避免返回标题时残留上一局的机体
+  if (G.phase !== 'title') {
+    for (const f of fighters) drawShadow(f);
+    // 按 x 排序，让交叠时的前后关系更自然
+    const order = fighters.slice().sort((a, b) => a.x - b.x);
+    for (const f of order) drawFighter(f);
+    drawShots();
+    drawParticles();
+  }
   ctx.restore();
 
   if (G.phase === 'title') drawTitle();
-  else { drawHUD(); drawBanner(); }
+  else { drawHUD(); drawBanner(); if (G.paused) drawPause(); }
 }
 
 let acc = 0, last = performance.now();
